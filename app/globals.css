@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* ─── Design Tokens ─────────────────────────────────────── */
+:root {
+  --bg:       #F4F6F9;
+  --surface:  #FFFFFF;
+  --border:   #DCE1EA;
+  --text:     #111827;
+  --muted:    #6B7280;
+  --accent:   #0C7C59;
+  --accent-dk:#095E44;
+  --error:    #DC2626;
+}
+
+@theme inline {
+  --color-bg:        var(--bg);
+  --color-surface:   var(--surface);
+  --color-border:    var(--border);
+  --color-text:      var(--text);
+  --color-muted:     var(--muted);
+  --color-accent:    var(--accent);
+  --color-accent-dk: var(--accent-dk);
+  --color-error:     var(--error);
+  --font-display:    var(--font-display, serif);
+  --font-sans:       var(--font-dm-sans);
+  --font-mono:       var(--font-jetbrains-mono);
+}
+
+/* ─── Base ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+/* ─── Dot Grid Background ────────────────────────────────── */
+.dot-grid {
+  background-image: radial-gradient(circle, #C8D0DC 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease both;
+}
+
+/* Staggered delays for child elements */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.12s; }
+.stagger-3 { animation-delay: 0.20s; }
+.stagger-4 { animation-delay: 0.28s; }
+.stagger-5 { animation-delay: 0.36s; }
+
+/* ─── Streaming Cursor ───────────────────────────────────── */
+@keyframes pulse-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.animate-pulse-cursor {
+  animation: pulse-cursor 0.8s ease-in-out infinite;
+}
+
+/* ─── Dropdown Enter ─────────────────────────────────────── */
+@keyframes dropdown-enter {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-dropdown-enter {
+  animation: dropdown-enter 0.2s ease-out both;
+}
+
