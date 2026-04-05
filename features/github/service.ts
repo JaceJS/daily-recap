@@ -1,5 +1,5 @@
-import { validateDateRange } from "@/lib/activity";
-import type { Project, ActivityData, FetchActivityInput } from "@/lib/types";
+import { validateDateRange } from "@/utils/activity";
+import type { Project, ActivityData, FetchActivityInput } from "@/types";
 import type { GitHubRepo, GitHubCommit, GitHubPR, GitHubIssue } from "./types";
 
 const GITHUB_API_BASE = "https://api.github.com";

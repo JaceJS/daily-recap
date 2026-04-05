@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { groupActivityByDay } from "@/lib/activity";
+import { getSession } from "@/config/session";
+import { checkRateLimit } from "@/utils/rate-limit";
+import { groupActivityByDay } from "@/utils/activity";
 import { fetchActivity as fetchGitLabActivity } from "@/features/gitlab/service";
 import { fetchActivity as fetchGitHubActivity } from "@/features/github/service";
 import { generateDailyLogStream } from "@/features/ai/service";

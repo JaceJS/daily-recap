@@ -1,4 +1,3 @@
-// Raw GitLab REST API response shapes — not used outside this feature module
 export type GitLabProject = {
   id: number;
   path_with_namespace: string;

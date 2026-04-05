@@ -1,5 +1,5 @@
 export type GenerateDailyLogInput = {
-  rawDailyActivity: string; // JSON string of DailyActivityData
+  rawDailyActivity: string;
   repoSlug: string;
   dateRangeStart: string;
   dateRangeEnd: string;

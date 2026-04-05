@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Textarea } from "@/app/_components/ui/Textarea";
 import { StreamingView } from "@/app/_components/report/StreamingView";
 import { mdComponents } from "@/app/_components/report/Markdown";
-import { exportContentAsPdf } from "@/lib/pdf-export";
+import { exportContentAsPdf } from "@/utils/pdf-export";
 
 interface Props {
   content: string;

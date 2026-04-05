@@ -1,10 +1,9 @@
 import { getCurrentUser } from "@/actions/auth";
-import { listRepos as listGitLabRepos } from "@/actions/gitlab";
-import { listRepos as listGitHubRepos } from "@/actions/github";
+import { listRepos } from "@/actions/repos";
 import SetupForm from "@/app/_components/SetupForm";
 import { Header } from "@/app/_components/Header";
 import { GeneratePage } from "@/app/_components/Generate";
-import type { Project } from "@/lib/types";
+import type { Project } from "@/types";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
@@ -12,7 +11,6 @@ export default async function HomePage() {
   if (!user) return <SetupForm />;
 
   let projects: Project[] = [];
-  const listRepos = user.provider === "github" ? listGitHubRepos : listGitLabRepos;
   const result = await listRepos();
   if (result.success) {
     projects = result.data;

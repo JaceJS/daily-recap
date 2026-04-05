@@ -1,6 +1,6 @@
-import { env } from "@/lib/env";
-import { validateDateRange } from "@/lib/activity";
-import type { Project, ActivityData, FetchActivityInput } from "@/lib/types";
+import { env } from "@/config/env";
+import { validateDateRange } from "@/utils/activity";
+import type { Project, ActivityData, FetchActivityInput } from "@/types";
 import type { GitLabProject, GitLabCommit, GitLabMR, GitLabIssue } from "./types";
 
 async function gitlabFetch<T>(

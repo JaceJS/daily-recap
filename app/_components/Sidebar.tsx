@@ -5,7 +5,7 @@ import { SearchableSelect } from "@/app/_components/ui/SearchableSelect";
 import { Input } from "@/app/_components/ui/Input";
 import { Button } from "@/app/_components/ui/Button";
 import { Label } from "@/app/_components/ui/Label";
-import type { Project, Provider } from "@/lib/types";
+import type { Project, Provider, GenerateParams } from "@/types";
 
 const RANGE_PRESETS = [
   { label: "24h", hours: 24 },
@@ -14,16 +14,6 @@ const RANGE_PRESETS = [
 ] as const;
 
 type RangePreset = (typeof RANGE_PRESETS)[number]["label"] | "custom";
-
-export type GenerateParams = {
-  repoSlug: string;
-  since: string;
-  until: string;
-  includePRs: boolean;
-  includeIssues: boolean;
-  language: "en" | "id";
-  outputMode: "log" | "standup";
-};
 
 interface Props {
   projects: Project[];

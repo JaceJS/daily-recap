@@ -1,4 +1,3 @@
-// Raw GitHub REST API response shapes — not used outside this feature module
 export type GitHubRepo = {
   id: number;
   full_name: string;
@@ -33,5 +32,5 @@ export type GitHubIssue = {
   state: string;
   updated_at: string;
   html_url: string;
-  pull_request?: object; // present when the issue is actually a PR
+  pull_request?: object;
 };

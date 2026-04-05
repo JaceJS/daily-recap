@@ -1,6 +1,6 @@
 import { getIronSession, type IronSession } from "iron-session";
 import { cookies } from "next/headers";
-import { env } from "@/lib/env";
+import { env } from "@/config/env";
 
 export type SessionData = {
   name: string;

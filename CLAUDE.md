@@ -21,24 +21,34 @@ bun lint     # Run ESLint
 
 Business logic lives in `features/` — each domain has its own `service.ts` (logic) and `types.ts` (TypeScript types):
 
-- `features/auth/` — session validation, pure `buildUserSession()` helper
-- `features/gitlab/` — GitLab API integration; normalizes raw API responses to shared `lib/types`
+- `features/auth/types.ts` — `UserSession` type (no service; logic inlined in `actions/auth.ts`)
+- `features/gitlab/` — GitLab API integration; normalizes raw API responses to shared `types/`
 - `features/github/` — GitHub API integration; same interface as GitLab feature
 - `features/ai/` — LLM streaming via OpenRouter
 
 ### Entry points
 
-- `app/page.tsx` — checks session; shows `SetupForm` or redirects to `/generate`
-- `actions/` — Next.js Server Actions that bridge UI forms → feature services; they own session cookies and validation
+- `app/page.tsx` — checks session; shows `SetupForm` or renders `GeneratePage`
+- `actions/auth.ts` — register, login, logout; session read/write
+- `actions/repos.ts` — unified `listRepos()` that dispatches to the correct provider based on session
 - `app/api/generate/route.ts` — Route Handler for streaming AI responses; includes IP-based rate limiting (10 req/hour)
+
+### React hooks
+
+Custom hooks live in `hooks/` — extract stateful/side-effect logic out of components:
+
+- `hooks/useReport.ts` — streaming fetch + localStorage persistence for the generated report
+- `hooks/useDropdown.ts` — click-outside + ESC-key close behavior for dropdown menus
 
 ### Shared utilities
 
-- `lib/env.ts` — **all env vars go through here**; use `env.VAR_NAME`, never `process.env` directly
-- `lib/session.ts` — iron-session config and `getSession()` helper; session TTL 3 hours
-- `lib/rate-limit.ts` — in-memory sliding window rate limiter (10 req/hour per IP)
-- `lib/types.ts` — shared types: `Project`, `Commit`, `PullRequest`, `Issue`, `ActivityData`, `DailyActivityData`, `FetchActivityInput`
-- `lib/activity.ts` — `groupActivityByDay()` and `validateDateRange()` shared by all provider services
+- `config/env.ts` — **all env vars go through here**; use `env.VAR_NAME`, never `process.env` directly
+- `config/session.ts` — iron-session config and `getSession()` helper; session TTL 3 hours
+- `types/index.ts` — shared domain types: `Project`, `Commit`, `PullRequest`, `Issue`, `ActivityData`, `DailyActivityData`, `FetchActivityInput`, `GenerateParams`
+- `utils/rate-limit.ts` — in-memory sliding window rate limiter (10 req/hour per IP)
+- `utils/activity.ts` — `groupActivityByDay()` and `validateDateRange()` shared by all provider services
+- `utils/markdown.ts` — React node text extraction helpers for markdown rendering
+- `utils/pdf-export.ts` — client-side PDF export via jsPDF
 
 ### Data flow
 
@@ -50,7 +60,7 @@ UI Component → Server Action (actions/) → Feature Service (features/)
 
 ## Environment variables
 
-All vars are declared and validated in `lib/env.ts`. Add values to `.env.local`.
+All vars are declared and validated in `config/env.ts`. Add values to `.env.local`.
 
 | Variable             | Required | Purpose                                                            |
 | -------------------- | -------- | ------------------------------------------------------------------ |
@@ -61,11 +71,12 @@ All vars are declared and validated in `lib/env.ts`. Add values to `.env.local`.
 
 ## Conventions
 
-- All env vars go through `lib/env.ts`
+- All env vars go through `config/env.ts`
+- Session config lives in `config/session.ts`
 - Server Actions go in `actions/`; they validate input and manage session state, then delegate to `features/`.
 - Feature services (`features/*/service.ts`) are pure business logic — no HTTP, no cookie access.
 - `app/api/` is used only when Server Actions cannot be used (e.g., streaming responses).
-- Auth is stateless — GitLab PAT stored in an iron-session encrypted cookie (`session`). No database. Session TTL: 7 days.
+- Auth is stateless — PAT stored in an iron-session encrypted cookie (`session`). No database. Session TTL: 3 hours.
 
 ### UI Components
 

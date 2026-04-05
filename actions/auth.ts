@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { buildUserSession } from "@/features/auth/service";
-import { getSession } from "@/lib/session";
-import type { Provider, UserSession } from "@/features/auth/types";
+import { getSession } from "@/config/session";
+import type { Provider } from "@/types";
+import type { UserSession } from "@/features/auth/types";
 
 type ActionState = { error: string } | null;
 
@@ -41,11 +41,10 @@ export async function registerUserAction(
   }
 
   try {
-    const sessionData = buildUserSession({ name, token, provider });
     const session = await getSession();
-    session.name = sessionData.name;
-    session.token = sessionData.token;
-    session.provider = sessionData.provider;
+    session.name = name;
+    session.token = token;
+    session.provider = provider;
     await session.save();
   } catch (err) {
     console.error("registerUserAction failed:", err);

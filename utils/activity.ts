@@ -1,4 +1,4 @@
-import type { ActivityData, DailyActivity, DailyActivityData } from "@/lib/types";
+import type { ActivityData, DailyActivity, DailyActivityData } from "@/types";
 
 export const MAX_DATE_RANGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 

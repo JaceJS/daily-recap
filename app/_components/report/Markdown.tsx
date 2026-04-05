@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import type { Components } from "react-markdown";
-import { getTextContent, getBlockquoteText } from "@/lib/markdown-helpers";
+import { getTextContent, getBlockquoteText } from "@/utils/markdown";
 
 // Delay (ms) before resetting the "copied" state in SummaryBlock
 const COPY_RESET_DELAY_MS = 2000;

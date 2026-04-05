@@ -4,10 +4,9 @@ export type ActionResult<T> =
 
 export type Provider = "gitlab" | "github";
 
-// Shared normalized types — both GitLab and GitHub services map to these
 export type Project = {
   id: string;
-  slug: string;        // path_with_namespace (GitLab) or full_name (GitHub)
+  slug: string;
   name: string;
   displayName: string;
   webUrl: string;
@@ -62,4 +61,14 @@ export type FetchActivityInput = {
   until: string;
   includePRs?: boolean;
   includeIssues?: boolean;
+};
+
+export type GenerateParams = {
+  repoSlug: string;
+  since: string;
+  until: string;
+  includePRs: boolean;
+  includeIssues: boolean;
+  language: "en" | "id";
+  outputMode: "log" | "standup";
 };

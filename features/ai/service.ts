@@ -1,5 +1,5 @@
-import { env } from "@/lib/env";
-import type { DailyActivityData } from "@/lib/types";
+import { env } from "@/config/env";
+import type { DailyActivityData } from "@/types";
 import type { GenerateDailyLogInput } from "./types";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -21,9 +21,15 @@ function buildLogPrompt(input: GenerateDailyLogInput): string {
   const data = JSON.parse(input.rawDailyActivity) as DailyActivityData;
 
   const dayBlocks = data.days.map((day) => {
-    const commitLines = day.commits.map((c) => `  - [commit] ${c.title}`).join("\n");
-    const mrLines = day.pullRequests.map((pr) => `  - [PR ${pr.state}] ${pr.title}`).join("\n");
-    const issueLines = day.issues.map((i) => `  - [issue ${i.state}] ${i.title}`).join("\n");
+    const commitLines = day.commits
+      .map((c) => `  - [commit] ${c.title}`)
+      .join("\n");
+    const mrLines = day.pullRequests
+      .map((pr) => `  - [PR ${pr.state}] ${pr.title}`)
+      .join("\n");
+    const issueLines = day.issues
+      .map((i) => `  - [issue ${i.state}] ${i.title}`)
+      .join("\n");
     const items = [commitLines, mrLines, issueLines].filter(Boolean).join("\n");
 
     return `### ${day.label} — ${day.date}\n${items || (input.language === "id" ? "  - Tidak ada aktivitas" : "  - No activity")}`;
@@ -46,9 +52,15 @@ function buildLogPrompt(input: GenerateDailyLogInput): string {
 function buildStandupPrompt(input: GenerateDailyLogInput): string {
   const data = JSON.parse(input.rawDailyActivity) as DailyActivityData;
 
-  const allCommits = data.days.flatMap((d) => d.commits.map((c) => `- [commit] ${c.title} (${d.label})`));
-  const allMRs = data.days.flatMap((d) => d.pullRequests.map((pr) => `- [PR ${pr.state}] ${pr.title} (${d.label})`));
-  const allIssues = data.days.flatMap((d) => d.issues.map((i) => `- [issue ${i.state}] ${i.title} (${d.label})`));
+  const allCommits = data.days.flatMap((d) =>
+    d.commits.map((c) => `- [commit] ${c.title} (${d.label})`),
+  );
+  const allMRs = data.days.flatMap((d) =>
+    d.pullRequests.map((pr) => `- [PR ${pr.state}] ${pr.title} (${d.label})`),
+  );
+  const allIssues = data.days.flatMap((d) =>
+    d.issues.map((i) => `- [issue ${i.state}] ${i.title} (${d.label})`),
+  );
 
   const activityLines = [...allCommits, ...allMRs, ...allIssues].join("\n");
 
@@ -60,18 +72,17 @@ function buildStandupPrompt(input: GenerateDailyLogInput): string {
 }
 
 export async function* generateDailyLogStream(
-  input: GenerateDailyLogInput
+  input: GenerateDailyLogInput,
 ): AsyncGenerator<string> {
   if (!env.OPENROUTER_API_KEY) {
     throw new Error("OPENROUTER_API_KEY is not configured.");
   }
 
-  console.log("[ai] mode:", input.outputMode, "lang:", input.language, "model:", env.OPENROUTER_MODEL);
-
   const systemPrompt = SYSTEM_PROMPT[input.outputMode][input.language];
-  const userPrompt = input.outputMode === "standup"
-    ? buildStandupPrompt(input)
-    : buildLogPrompt(input);
+  const userPrompt =
+    input.outputMode === "standup"
+      ? buildStandupPrompt(input)
+      : buildLogPrompt(input);
 
   const response = await fetch(OPENROUTER_URL, {
     method: "POST",
@@ -95,8 +106,6 @@ export async function* generateDailyLogStream(
     console.error("[ai] OpenRouter error", response.status, text);
     throw new Error(`OpenRouter error ${response.status}: ${text}`);
   }
-
-  console.log("[ai] OpenRouter stream started");
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();

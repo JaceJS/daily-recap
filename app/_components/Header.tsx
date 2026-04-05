@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/actions/auth";
+import { useDropdown } from "@/hooks/useDropdown";
 
 const PALETTE = [
   { bg: "#0C7C59", text: "#ffffff" }, // emerald
@@ -60,28 +60,7 @@ interface Props {
 }
 
 export function Header({ userName }: Props) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
+  const { isOpen: open, toggle, ref } = useDropdown<HTMLDivElement>();
 
   return (
     <header className="h-14 px-6 flex items-center justify-between border-b border-border bg-surface shrink-0">
@@ -93,7 +72,7 @@ export function Header({ userName }: Props) {
       <div ref={ref} className="relative">
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={toggle}
           aria-expanded={open}
           aria-haspopup="true"
           className="flex items-center gap-2.5 cursor-pointer group outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded-lg"

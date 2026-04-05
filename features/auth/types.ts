@@ -1,10 +1,4 @@
-export type Provider = "gitlab" | "github";
-
-export type RegisterUserInput = {
-  name: string;
-  token: string;
-  provider: Provider;
-};
+import type { Provider } from "@/types";
 
 export type UserSession = {
   name: string;
