@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentUser } from "@/actions/auth";
+import { getCurrentUser } from "@/features/auth/actions";
 import { listProjects as listGitHubProjects } from "@/features/github/service";
 import { listProjects as listGitLabProjects } from "@/features/gitlab/service";
 import type { Project, ActionResult } from "@/types";

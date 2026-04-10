@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useActionState } from "react";
-import { registerUserAction } from "@/actions/auth";
-import { Button } from "@/app/_components/ui/Button";
-import { Input } from "@/app/_components/ui/Input";
-import { Label } from "@/app/_components/ui/Label";
-import { ErrorBox } from "@/app/_components/ui/ErrorBox";
+import { registerUserAction } from "@/features/auth/actions";
+import { Button } from "@/components/Button";
+import { Input } from "@/components/Input";
+import { Label } from "@/components/Label";
+import { ErrorBox } from "@/components/ErrorBox";
 
 const FEATURES = [
   { symbol: "⚡", label: "Connect your repository in seconds" },

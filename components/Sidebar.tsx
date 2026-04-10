@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { SearchableSelect } from "@/app/_components/ui/SearchableSelect";
-import { Input } from "@/app/_components/ui/Input";
-import { Button } from "@/app/_components/ui/Button";
-import { Label } from "@/app/_components/ui/Label";
+import { SearchableSelect } from "@/components/SearchableSelect";
+import { Input } from "@/components/Input";
+import { Button } from "@/components/Button";
+import { Label } from "@/components/Label";
 import type { Project, Provider, GenerateParams } from "@/types";
 
 const RANGE_PRESETS = [

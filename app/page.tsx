@@ -1,7 +1,7 @@
-import { getCurrentUser } from "@/actions/auth";
-import { listRepos } from "@/actions/repos";
-import SetupForm from "@/app/_components/SetupForm";
-import { Header } from "@/app/_components/Header";
+import { getCurrentUser } from "@/features/auth/actions";
+import { listRepos } from "@/features/repos/actions";
+import SetupForm from "@/features/auth/SetupForm";
+import { Header } from "@/components/Header";
 import { GeneratePage } from "@/app/_components/Generate";
 import type { Project } from "@/types";
 

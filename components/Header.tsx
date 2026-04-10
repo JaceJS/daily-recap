@@ -1,6 +1,6 @@
 "use client";
 
-import { logoutAction } from "@/actions/auth";
+import { logoutAction } from "@/features/auth/actions";
 import { useDropdown } from "@/hooks/useDropdown";
 
 const PALETTE = [

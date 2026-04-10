@@ -14,14 +14,15 @@ const TOKEN_PREFIXES: Record<Provider, string[]> = {
 
 export async function registerUserAction(
   _prevState: ActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionState> {
   const name = (formData.get("name") as string)?.trim();
   const token = (formData.get("token") as string)?.trim();
   const rawProvider = (formData.get("provider") as string)?.trim();
 
   if (!name) return { error: "Name is required." };
-  if (name.length > 50) return { error: "Name must be 50 characters or fewer." };
+  if (name.length > 50)
+    return { error: "Name must be 50 characters or fewer." };
   if (!token) return { error: "Access token is required." };
   if (token.length > 255) return { error: "Token is too long." };
 
@@ -51,13 +52,17 @@ export async function registerUserAction(
     return { error: "Failed to save session. Please try again." };
   }
 
-  redirect("/generate");
+  redirect("/");
 }
 
 export async function getCurrentUser(): Promise<UserSession | null> {
   const session = await getSession();
   if (!session.name || !session.token || !session.provider) return null;
-  return { name: session.name, token: session.token, provider: session.provider };
+  return {
+    name: session.name,
+    token: session.token,
+    provider: session.provider,
+  };
 }
 
 export async function requireCurrentUser(): Promise<UserSession> {

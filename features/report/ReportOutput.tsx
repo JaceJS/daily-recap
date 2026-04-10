@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Textarea } from "@/app/_components/ui/Textarea";
-import { StreamingView } from "@/app/_components/report/StreamingView";
-import { mdComponents } from "@/app/_components/report/Markdown";
+import { Textarea } from "@/components/Textarea";
+import { StreamingView } from "@/features/report/StreamingView";
+import { mdComponents } from "@/features/report/Markdown";
 import { exportContentAsPdf } from "@/utils/pdf-export";
 
 interface Props {

@@ -1,8 +1,8 @@
 "use client";
 
-import { Sidebar } from "@/app/_components/Sidebar";
-import { ReportOutput } from "@/app/_components/ReportOutput";
-import { useReport } from "@/hooks/useReport";
+import { Sidebar } from "@/components/Sidebar";
+import { ReportOutput } from "@/features/report/ReportOutput";
+import { useReport } from "@/features/report/useReport";
 import type { Project, Provider } from "@/types";
 
 interface Props {
