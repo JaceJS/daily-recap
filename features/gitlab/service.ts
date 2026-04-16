@@ -1,6 +1,6 @@
 import { env } from "@/config/env";
 import { validateDateRange } from "@/utils/activity";
-import type { Project, ActivityData, FetchActivityInput } from "@/types";
+import type { Project, ActivityData, FetchActivityInput, Branch } from "@/types";
 import type { GitLabProject, GitLabCommit, GitLabMR, GitLabIssue } from "./types";
 
 async function gitlabFetch<T>(
@@ -42,17 +42,26 @@ export async function listProjects(token: string): Promise<Project[]> {
   }));
 }
 
+export async function listBranches(token: string, repoSlug: string): Promise<Branch[]> {
+  const slug = encodeURIComponent(repoSlug);
+  const raw = await gitlabFetch<{ name: string; default: boolean }[]>(
+    token,
+    `/projects/${slug}/repository/branches`,
+    { per_page: "100" }
+  );
+  return raw.map((b) => ({ name: b.name, isDefault: b.default }));
+}
+
 export async function fetchActivity(input: FetchActivityInput): Promise<ActivityData> {
-  const { token, repoSlug, since, until, includePRs = false, includeIssues = false } = input;
+  const { token, repoSlug, since, until, includePRs = false, includeIssues = false, branch } = input;
   validateDateRange(since, until);
   const slug = encodeURIComponent(repoSlug);
 
+  const commitParams: Record<string, string> = { since, until, per_page: "100" };
+  if (branch) commitParams.ref_name = branch;
+
   const [commits, mergeRequests, issues] = await Promise.all([
-    gitlabFetch<GitLabCommit[]>(token, `/projects/${slug}/repository/commits`, {
-      since,
-      until,
-      per_page: "100",
-    }),
+    gitlabFetch<GitLabCommit[]>(token, `/projects/${slug}/repository/commits`, commitParams),
     includePRs
       ? gitlabFetch<GitLabMR[]>(token, `/projects/${slug}/merge_requests`, {
           updated_after: since,

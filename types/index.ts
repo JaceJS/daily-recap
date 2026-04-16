@@ -54,6 +54,11 @@ export type DailyActivityData = {
   days: DailyActivity[];
 };
 
+export type Branch = {
+  name: string;
+  isDefault: boolean;
+};
+
 export type FetchActivityInput = {
   token: string;
   repoSlug: string;
@@ -61,10 +66,12 @@ export type FetchActivityInput = {
   until: string;
   includePRs?: boolean;
   includeIssues?: boolean;
+  branch?: string;
 };
 
 export type GenerateParams = {
   repoSlug: string;
+  branch: string;
   since: string;
   until: string;
   includePRs: boolean;

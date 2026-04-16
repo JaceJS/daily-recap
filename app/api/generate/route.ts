@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
 
   let body: {
     repoSlug?: string;
+    branch?: string;
     since?: string;
     until?: string;
     includePRs?: boolean;
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
 
   const {
     repoSlug,
+    branch,
     since,
     until,
     includePRs = false,
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
   let rawDailyActivity: string;
   try {
     const fetchActivity = provider === "github" ? fetchGitHubActivity : fetchGitLabActivity;
-    const activity = await fetchActivity({ token, repoSlug, since, until, includePRs, includeIssues });
+    const activity = await fetchActivity({ token, repoSlug, branch, since, until, includePRs, includeIssues });
     const grouped = groupActivityByDay(activity, since, until, language);
 
     if (grouped.days.length === 0) {

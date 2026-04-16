@@ -1,5 +1,5 @@
 import { validateDateRange } from "@/utils/activity";
-import type { Project, ActivityData, FetchActivityInput } from "@/types";
+import type { Project, ActivityData, FetchActivityInput, Branch } from "@/types";
 import type { GitHubRepo, GitHubCommit, GitHubPR, GitHubIssue } from "./types";
 
 const GITHUB_API_BASE = "https://api.github.com";
@@ -46,19 +46,26 @@ export async function listProjects(token: string): Promise<Project[]> {
   }));
 }
 
+export async function listBranches(token: string, repoSlug: string): Promise<Branch[]> {
+  const raw = await githubFetch<{ name: string }[]>(token, `/repos/${repoSlug}/branches`, {
+    per_page: "100",
+  });
+  const DEFAULTS = new Set(["main", "master"]);
+  return raw.map((b) => ({ name: b.name, isDefault: DEFAULTS.has(b.name) }));
+}
+
 export async function fetchActivity(input: FetchActivityInput): Promise<ActivityData> {
-  const { token, repoSlug, since, until, includePRs = false, includeIssues = false } = input;
+  const { token, repoSlug, since, until, includePRs = false, includeIssues = false, branch } = input;
   validateDateRange(since, until);
 
   const sinceTime = new Date(since).getTime();
   const untilTime = new Date(until).getTime();
 
+  const commitParams: Record<string, string> = { since, until, per_page: "100" };
+  if (branch) commitParams.sha = branch;
+
   const [commits, pullRequests, issues] = await Promise.all([
-    githubFetch<GitHubCommit[]>(token, `/repos/${repoSlug}/commits`, {
-      since,
-      until,
-      per_page: "100",
-    }),
+    githubFetch<GitHubCommit[]>(token, `/repos/${repoSlug}/commits`, commitParams),
     includePRs
       ? githubFetch<GitHubPR[]>(token, `/repos/${repoSlug}/pulls`, {
           state: "all",

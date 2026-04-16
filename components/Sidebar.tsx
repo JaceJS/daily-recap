@@ -5,7 +5,8 @@ import { SearchableSelect } from "@/components/SearchableSelect";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { Label } from "@/components/Label";
-import type { Project, Provider, GenerateParams } from "@/types";
+import { listBranches } from "@/features/repos/actions";
+import type { Project, Provider, GenerateParams, Branch } from "@/types";
 
 const RANGE_PRESETS = [
   { label: "24h", hours: 24 },
@@ -24,6 +25,10 @@ interface Props {
 
 export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props) {
   const [selectedRepo, setSelectedRepo] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  const [branchesError, setBranchesError] = useState("");
   const [rangePreset, setRangePreset] = useState<RangePreset>("24h");
   const [customSince, setCustomSince] = useState("");
   const [customUntil, setCustomUntil] = useState("");
@@ -32,6 +37,31 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
   const [includeIssues, setIncludeIssues] = useState(false);
   const [language, setLanguage] = useState<"en" | "id">("id");
   const [validationError, setValidationError] = useState("");
+
+  async function handleRepoChange(repoSlug: string) {
+    setSelectedRepo(repoSlug);
+    setSelectedBranch("");
+    setBranches([]);
+    setBranchesError("");
+    if (!repoSlug) return;
+    setBranchesLoading(true);
+    try {
+      const result = await listBranches(repoSlug);
+      if (result.success) {
+        setBranches(result.data);
+        const preferred =
+          result.data.find((b) => b.name === "main") ??
+          result.data.find((b) => b.name === "master") ??
+          result.data.find((b) => b.isDefault) ??
+          result.data[0];
+        if (preferred) setSelectedBranch(preferred.name);
+      } else {
+        setBranchesError(result.error);
+      }
+    } finally {
+      setBranchesLoading(false);
+    }
+  }
 
   const isStandupAvailable = rangePreset === "24h";
 
@@ -69,9 +99,13 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
       setValidationError("Please select a repository.");
       return;
     }
+    if (!selectedBranch) {
+      setValidationError("Please select a branch.");
+      return;
+    }
     const dates = computeDateRange();
     if (!dates) return;
-    onGenerate({ repoSlug: selectedRepo, ...dates, includePRs, includeIssues, language, outputMode });
+    onGenerate({ repoSlug: selectedRepo, branch: selectedBranch, ...dates, includePRs, includeIssues, language, outputMode });
   }
 
   const disabled = isGenerating;
@@ -108,12 +142,33 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
               id="repo"
               options={projects.map((p) => ({ label: p.name, value: p.slug }))}
               value={selectedRepo}
-              onChange={(val) => setSelectedRepo(val)}
+              onChange={handleRepoChange}
               placeholder="Select a repository"
               disabled={disabled}
             />
           )}
         </div>
+
+        {/* Branch */}
+        {selectedRepo && (
+          <div className="flex flex-col gap-1.5 animate-fade-in">
+            <Label htmlFor="branch">Branch</Label>
+            {branchesLoading ? (
+              <p className="text-xs font-mono text-muted">Loading branches...</p>
+            ) : branchesError ? (
+              <p className="text-xs font-sans text-error">{branchesError}</p>
+            ) : (
+              <SearchableSelect
+                id="branch"
+                options={branches.map((b) => ({ label: b.name, value: b.name }))}
+                value={selectedBranch}
+                onChange={setSelectedBranch}
+                placeholder="Select a branch"
+                disabled={disabled || branchesLoading}
+              />
+            )}
+          </div>
+        )}
 
         {/* Date range */}
         <div className="flex flex-col gap-2">
