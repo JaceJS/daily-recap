@@ -19,9 +19,11 @@ bun lint     # Run ESLint
 
 ### Modular feature structure
 
-Business logic lives in `features/` — each domain has its own `service.ts` (logic) and `types.ts` (TypeScript types):
+Features are self-contained modules in `features/` — each owns its actions, components, and types:
 
-- `features/auth/types.ts` — `UserSession` type (no service; logic inlined in `actions/auth.ts`)
+- `features/auth/` — `actions.ts` (register, login, logout), `types.ts` (`UserSession`), `SetupForm.tsx`
+- `features/report/` — `ReportOutput.tsx`, `StreamingView.tsx`, `Markdown.tsx`, `useReport.ts` (streaming hook)
+- `features/repos/` — `actions.ts` (unified `listRepos()` dispatcher)
 - `features/gitlab/` — GitLab API integration; normalizes raw API responses to shared `types/`
 - `features/github/` — GitHub API integration; same interface as GitLab feature
 - `features/ai/` — LLM streaming via OpenRouter
@@ -29,16 +31,14 @@ Business logic lives in `features/` — each domain has its own `service.ts` (lo
 ### Entry points
 
 - `app/page.tsx` — checks session; shows `SetupForm` or renders `GeneratePage`
-- `actions/auth.ts` — register, login, logout; session read/write
-- `actions/repos.ts` — unified `listRepos()` that dispatches to the correct provider based on session
+- `features/auth/actions.ts` — register, login, logout; session read/write
+- `features/repos/actions.ts` — unified `listRepos()` that dispatches to the correct provider based on session
 - `app/api/generate/route.ts` — Route Handler for streaming AI responses; includes IP-based rate limiting (10 req/hour)
 
 ### React hooks
 
-Custom hooks live in `hooks/` — extract stateful/side-effect logic out of components:
-
-- `hooks/useReport.ts` — streaming fetch + localStorage persistence for the generated report
-- `hooks/useDropdown.ts` — click-outside + ESC-key close behavior for dropdown menus
+- `features/report/useReport.ts` — streaming fetch + localStorage persistence for the generated report
+- `hooks/useDropdown.ts` — click-outside + ESC-key close behavior for dropdown menus (general UI utility)
 
 ### Shared utilities
 
@@ -53,9 +53,9 @@ Custom hooks live in `hooks/` — extract stateful/side-effect logic out of comp
 ### Data flow
 
 ```
-UI Component → Server Action (actions/) → Feature Service (features/)
-                     ↕                              ↕
-              iron-session cookie           GitLab API / LLM API
+UI Component → Server Action (features/*/actions.ts) → Feature Service (features/*/service.ts)
+                     ↕                                          ↕
+              iron-session cookie                      GitLab API / LLM API
 ```
 
 ## Environment variables
@@ -73,14 +73,15 @@ All vars are declared and validated in `config/env.ts`. Add values to `.env.loca
 
 - All env vars go through `config/env.ts`
 - Session config lives in `config/session.ts`
-- Server Actions go in `actions/`; they validate input and manage session state, then delegate to `features/`.
+- Server Actions live in `features/*/actions.ts`; they validate input and manage session state, then delegate to `features/*/service.ts`.
 - Feature services (`features/*/service.ts`) are pure business logic — no HTTP, no cookie access.
+- Feature components (`features/*/`) are domain-specific UI tightly coupled to their feature.
 - `app/api/` is used only when Server Actions cannot be used (e.g., streaming responses).
 - Auth is stateless — PAT stored in an iron-session encrypted cookie (`session`). No database. Session TTL: 3 hours.
 
 ### UI Components
 
-Reusable UI primitives live in `app/_components/ui/`. Use these instead of inline styles or global CSS classes.
+Reusable UI primitives and layout components live in `components/`. Use these instead of inline styles or global CSS classes.
 
 | Component  | Usage                                        |
 | ---------- | -------------------------------------------- |
