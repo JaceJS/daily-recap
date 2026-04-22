@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { requestServerJson } from "@/lib/http/server";
 import { validateDateRange } from "@/utils/activity";
 import type { Project, ActivityData, FetchActivityInput, Branch } from "@/types";
 import type { GitLabProject, GitLabCommit, GitLabMR, GitLabIssue } from "./types";
@@ -8,20 +9,11 @@ async function gitlabFetch<T>(
   path: string,
   params?: Record<string, string>
 ): Promise<T> {
-  const url = new URL(`${env.GITLAB_URL}/api/v4${path}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  }
-
-  const response = await fetch(url.toString(), {
+  return requestServerJson<T>(`${env.GITLAB_URL}/api/v4${path}`, {
     headers: { "PRIVATE-TOKEN": token },
+    query: params,
+    errorPrefix: `GitLab API error at ${path}`,
   });
-
-  if (!response.ok) {
-    throw new Error(`GitLab API error ${response.status} at ${path}`);
-  }
-
-  return response.json() as Promise<T>;
 }
 
 export async function listProjects(token: string): Promise<Project[]> {

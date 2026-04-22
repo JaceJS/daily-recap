@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { requestServerResponse } from "@/lib/http/server";
 import type { DailyActivityData, StandupActivityData } from "@/types";
 import type { GenerateDailyLogInput } from "./types";
 
@@ -120,7 +121,7 @@ export async function* generateDailyLogStream(
       ? buildStandupPrompt(input)
       : buildLogPrompt(input);
 
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await requestServerResponse(OPENROUTER_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
@@ -136,13 +137,9 @@ export async function* generateDailyLogStream(
         { role: "user", content: userPrompt },
       ],
     }),
+    errorPrefix: "OpenRouter error",
   });
-
-  if (!response.ok || !response.body) {
-    const text = await response.text().catch(() => response.statusText);
-    console.error("[ai] OpenRouter error", response.status, text);
-    throw new Error(`OpenRouter error ${response.status}: ${text}`);
-  }
+  if (!response.body) throw new Error("OpenRouter returned no response body.");
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();

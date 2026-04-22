@@ -5,8 +5,8 @@ import { SearchableSelect } from "@/components/SearchableSelect";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { Label } from "@/components/Label";
-import { listBranches } from "@/features/repos/actions";
-import type { Project, Provider, GenerateParams, Branch } from "@/types";
+import { useRepoBranches } from "@/features/repos/hooks/useRepoBranches";
+import type { Project, Provider, GenerateParams } from "@/types";
 
 const RANGE_PRESETS = [
   { label: "24h", hours: 24 },
@@ -25,10 +25,7 @@ interface Props {
 
 export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props) {
   const [selectedRepo, setSelectedRepo] = useState("");
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [branchesLoading, setBranchesLoading] = useState(false);
-  const [branchesError, setBranchesError] = useState("");
   const [rangePreset, setRangePreset] = useState<RangePreset>("24h");
   const [customSince, setCustomSince] = useState("");
   const [customUntil, setCustomUntil] = useState("");
@@ -36,30 +33,23 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
   const [includePRs, setIncludePRs] = useState(true);
   const [includeIssues, setIncludeIssues] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const {
+    branches,
+    isLoading: branchesLoading,
+    error: branchesError,
+    loadBranches,
+  } = useRepoBranches();
 
   async function handleRepoChange(repoSlug: string) {
     setSelectedRepo(repoSlug);
     setSelectedBranch("");
-    setBranches([]);
-    setBranchesError("");
-    if (!repoSlug) return;
-    setBranchesLoading(true);
-    try {
-      const result = await listBranches(repoSlug);
-      if (result.success) {
-        setBranches(result.data);
-        const preferred =
-          result.data.find((b) => b.name === "main") ??
-          result.data.find((b) => b.name === "master") ??
-          result.data.find((b) => b.isDefault) ??
-          result.data[0];
-        if (preferred) setSelectedBranch(preferred.name);
-      } else {
-        setBranchesError(result.error);
-      }
-    } finally {
-      setBranchesLoading(false);
-    }
+    const nextBranches = await loadBranches(repoSlug);
+    const preferred =
+      nextBranches.find((b) => b.name === "main") ??
+      nextBranches.find((b) => b.name === "master") ??
+      nextBranches.find((b) => b.isDefault) ??
+      nextBranches[0];
+    if (preferred) setSelectedBranch(preferred.name);
   }
 
   function handleRangePreset(preset: RangePreset) {

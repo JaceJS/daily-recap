@@ -1,3 +1,4 @@
+import { requestServerJson } from "@/lib/http/server";
 import { validateDateRange } from "@/utils/activity";
 import type { Project, ActivityData, FetchActivityInput, Branch } from "@/types";
 import type { GitHubRepo, GitHubCommit, GitHubPR, GitHubIssue } from "./types";
@@ -9,24 +10,15 @@ async function githubFetch<T>(
   path: string,
   params?: Record<string, string>
 ): Promise<T> {
-  const url = new URL(`${GITHUB_API_BASE}${path}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  }
-
-  const response = await fetch(url.toString(), {
+  return requestServerJson<T>(`${GITHUB_API_BASE}${path}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
     },
+    query: params,
+    errorPrefix: `GitHub API error at ${path}`,
   });
-
-  if (!response.ok) {
-    throw new Error(`GitHub API error ${response.status} at ${path}`);
-  }
-
-  return response.json() as Promise<T>;
 }
 
 export async function listProjects(token: string): Promise<Project[]> {

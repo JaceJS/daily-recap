@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { streamClientText } from "@/lib/http/client";
 import type { GenerateParams } from "@/types";
 
 const STORAGE_KEY = "daily-recap:report";
@@ -19,31 +20,13 @@ export function useReport() {
     setIsGenerating(true);
 
     try {
-      const res = await fetch("/api/generate", {
+      const accumulated = await streamClientText("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
+        jsonBody: params,
+        onChunk: (_chunk, fullText) => {
+          setContent(fullText);
+        },
       });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(
-          (body as { message?: string }).message ?? `Error ${res.status}`,
-        );
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No response body.");
-
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        setContent(accumulated);
-      }
 
       localStorage.setItem(STORAGE_KEY, accumulated);
     } catch (err) {
