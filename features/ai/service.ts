@@ -7,14 +7,10 @@ const SSE_DATA_PREFIX = "data: ";
 const SSE_DONE_SIGNAL = "[DONE]";
 
 const SYSTEM_PROMPT = {
-  log: {
-    en: "You are a daily activity log generator. For each day provided, write a concise summary of what was accomplished based on the commit messages, merge requests, and issues. Use markdown with ## headings per day. Be factual and brief — do not invent work not present in the data. If a day has no activity, write 'No activity.' When listing individual items, preserve the original prefix tags exactly as given: [commit], [PR <state>], or [issue <state>].",
-    id: "Kamu adalah generator log aktivitas harian. Untuk setiap hari yang diberikan, tulis ringkasan singkat tentang apa yang dikerjakan berdasarkan commit message, merge request, dan issue. Gunakan markdown dengan heading ## per hari. Jadilah faktual dan ringkas — jangan mengarang pekerjaan yang tidak ada di data. Jika suatu hari tidak ada aktivitas, tulis 'Tidak ada aktivitas.' Saat mendaftar item individual, pertahankan tag prefix persis seperti yang diberikan: [commit], [PR <state>], atau [issue <state>].",
-  },
-  standup: {
-    en: "You are a standup report generator. Given GitLab activity from the last 24 hours, produce a concise daily standup with three sections: **Yesterday**, **Today**, and **Blockers**. Use markdown. Be brief and professional. Infer what was done yesterday vs today from the timestamps in the data. When listing individual items, preserve the original prefix tags exactly as given: [commit], [PR <state>], or [issue <state>].",
-    id: "Kamu adalah generator laporan standup. Berdasarkan aktivitas GitLab dari 24 jam terakhir, buat laporan standup harian singkat dengan tiga bagian: **Kemarin**, **Hari ini**, dan **Blocker**. Gunakan markdown. Ringkas dan profesional. Tentukan mana yang dikerjakan kemarin vs hari ini dari timestamp yang ada di data. Saat mendaftar item individual, pertahankan tag prefix persis seperti yang diberikan: [commit], [PR <state>], atau [issue <state>].",
-  },
+  log:
+    "Kamu adalah generator log aktivitas harian untuk engineer Indonesia. Tulis dengan gaya bahasa kerja yang natural: dominan Bahasa Indonesia, tetapi tetap biarkan istilah teknis umum dalam English jika lebih lazim dipakai, seperti pull request, issue, deploy, endpoint, refactor, bugfix, staging, dan production. Jangan memaksakan terjemahan istilah teknis, jangan mengubah nama branch, nama fitur, atau proper noun. Untuk setiap hari yang diberikan, tulis ringkasan singkat berdasarkan commit message, merge request, dan issue. Gunakan markdown dengan heading ## per hari. Jadilah faktual dan ringkas, jangan mengarang pekerjaan yang tidak ada di data. Saat mendaftar item individual, pertahankan tag prefix persis seperti yang diberikan: [commit], [PR <state>], atau [issue <state>].",
+  standup:
+    "Kamu adalah generator laporan standup untuk engineer Indonesia. Tulis dengan gaya bahasa kerja yang natural: dominan Bahasa Indonesia, tetapi tetap biarkan istilah teknis umum dalam English jika lebih lazim dipakai, seperti pull request, issue, deploy, endpoint, refactor, bugfix, staging, dan production. Jangan memaksakan terjemahan istilah teknis, jangan mengubah nama branch, nama fitur, atau proper noun. Berdasarkan aktivitas repository dari 24 jam terakhir, buat laporan standup singkat dengan tiga bagian: **Kemarin**, **Hari ini**, dan **Blocker**. Gunakan markdown. Ringkas, profesional, dan faktual. Tentukan mana yang dikerjakan kemarin vs hari ini dari data yang ada. Saat mendaftar item individual, pertahankan tag prefix persis seperti yang diberikan: [commit], [PR <state>], atau [issue <state>].",
 } as const;
 
 function buildLogPrompt(input: GenerateDailyLogInput): string {
@@ -32,18 +28,16 @@ function buildLogPrompt(input: GenerateDailyLogInput): string {
       .join("\n");
     const items = [commitLines, mrLines, issueLines].filter(Boolean).join("\n");
 
-    return `### ${day.label} — ${day.date}\n${items || (input.language === "id" ? "  - Tidak ada aktivitas" : "  - No activity")}`;
+    return `### ${day.label} — ${day.date}\n${items || "  - Tidak ada aktivitas"}`;
   });
 
   const summaryInstruction = input.includeDaySummary
-    ? input.language === "id"
-      ? "\n\nUntuk setiap hari, setelah daftar aktivitas, tambahkan ringkasan sebagai blockquote berisi 2-3 poin singkat yang merangkum konteks pekerjaan hari itu. Contoh format:\n> - Mengerjakan perbaikan autentikasi\n> - Memperbarui tampilan UI"
-      : "\n\nFor each day, after the activity list, add a blockquote with 2-3 short bullet points summarising the context of that day's work. Example format:\n> - Worked on authentication fixes\n> - Updated UI components"
+    ? "\n\nUntuk setiap hari, setelah daftar aktivitas, tambahkan ringkasan sebagai blockquote berisi 2-3 poin singkat yang merangkum konteks pekerjaan hari itu. Gunakan gaya bahasa kerja Indonesia campur English yang natural. Contoh format:\n> - Mengerjakan perbaikan flow autentikasi\n> - Update beberapa UI component"
     : "";
 
   return (
     `Repository: ${input.repoSlug}\n` +
-    `Periode: ${input.dateRangeStart} → ${input.dateRangeEnd}\n\n` +
+    `Periode: ${input.dateRangeStart} -> ${input.dateRangeEnd}\n\n` +
     `Data aktivitas (urutan lama ke baru):\n\n${dayBlocks.join("\n\n")}` +
     summaryInstruction
   );
@@ -66,8 +60,8 @@ function buildStandupPrompt(input: GenerateDailyLogInput): string {
 
   return (
     `Repository: ${input.repoSlug}\n` +
-    `Period: ${input.dateRangeStart} → ${input.dateRangeEnd}\n\n` +
-    `Activity:\n${activityLines || (input.language === "id" ? "Tidak ada aktivitas." : "No activity found.")}`
+    `Periode: ${input.dateRangeStart} -> ${input.dateRangeEnd}\n\n` +
+    `Aktivitas:\n${activityLines || "Tidak ada aktivitas."}`
   );
 }
 
@@ -78,7 +72,7 @@ export async function* generateDailyLogStream(
     throw new Error("OPENROUTER_API_KEY is not configured.");
   }
 
-  const systemPrompt = SYSTEM_PROMPT[input.outputMode][input.language];
+  const systemPrompt = SYSTEM_PROMPT[input.outputMode];
   const userPrompt =
     input.outputMode === "standup"
       ? buildStandupPrompt(input)

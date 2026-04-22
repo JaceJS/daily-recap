@@ -76,6 +76,5 @@ export type GenerateParams = {
   until: string;
   includePRs: boolean;
   includeIssues: boolean;
-  language: "en" | "id";
   outputMode: "log" | "standup";
 };

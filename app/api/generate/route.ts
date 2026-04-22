@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
     until?: string;
     includePRs?: boolean;
     includeIssues?: boolean;
-    language?: "en" | "id";
     outputMode?: "log" | "standup";
   };
   try {
@@ -52,7 +51,6 @@ export async function POST(req: NextRequest) {
     until,
     includePRs = false,
     includeIssues = false,
-    language = "id",
     outputMode = "log",
   } = body;
 
@@ -67,12 +65,10 @@ export async function POST(req: NextRequest) {
   try {
     const fetchActivity = provider === "github" ? fetchGitHubActivity : fetchGitLabActivity;
     const activity = await fetchActivity({ token, repoSlug, branch, since, until, includePRs, includeIssues });
-    const grouped = groupActivityByDay(activity, since, until, language);
+    const grouped = groupActivityByDay(activity, since, until);
 
     if (grouped.days.length === 0) {
-      const msg = language === "id"
-        ? "Tidak ada aktivitas pada periode yang dipilih."
-        : "No activity found in the selected period.";
+      const msg = "Tidak ada aktivitas pada periode yang dipilih.";
       return new Response(msg, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
 
@@ -87,7 +83,6 @@ export async function POST(req: NextRequest) {
     repoSlug,
     dateRangeStart: since,
     dateRangeEnd: until,
-    language,
     outputMode,
     includeDaySummary: outputMode === "log",
   });

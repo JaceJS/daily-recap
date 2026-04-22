@@ -35,7 +35,6 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
   const [outputMode, setOutputMode] = useState<"log" | "standup">("log");
   const [includePRs, setIncludePRs] = useState(true);
   const [includeIssues, setIncludeIssues] = useState(false);
-  const [language, setLanguage] = useState<"en" | "id">("id");
   const [validationError, setValidationError] = useState("");
 
   async function handleRepoChange(repoSlug: string) {
@@ -105,7 +104,7 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
     }
     const dates = computeDateRange();
     if (!dates) return;
-    onGenerate({ repoSlug: selectedRepo, branch: selectedBranch, ...dates, includePRs, includeIssues, language, outputMode });
+    onGenerate({ repoSlug: selectedRepo, branch: selectedBranch, ...dates, includePRs, includeIssues, outputMode });
   }
 
   const disabled = isGenerating;
@@ -274,29 +273,6 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
               Issues
             </span>
           </label>
-        </div>
-
-        {/* Language */}
-        <div className="flex flex-col gap-2">
-          <Label>Language</Label>
-          <div className="flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => setLanguage("id")}
-              disabled={disabled}
-              className={toggleBtn(language === "id")}
-            >
-              Indonesian
-            </button>
-            <button
-              type="button"
-              onClick={() => setLanguage("en")}
-              disabled={disabled}
-              className={toggleBtn(language === "en")}
-            >
-              English
-            </button>
-          </div>
         </div>
 
         {validationError && (
