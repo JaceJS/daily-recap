@@ -11,6 +11,26 @@ interface SummaryBlockProps {
   children: ReactNode;
 }
 
+interface ActivityListItem {
+  prefix: string;
+  text: string;
+}
+
+function parseActivityListItem(text: string): ActivityListItem | null {
+  if (text.startsWith("[commit] ")) {
+    return { prefix: "commit", text: text.replace(/^\[commit\]\s+/, "") };
+  }
+
+  const prefixedMatch = text.match(/^\[(PR|MR|issue)\s+([^\]]+)\]\s+(.*)$/i);
+  if (!prefixedMatch) return null;
+
+  const [, kind, state, label] = prefixedMatch;
+  return {
+    prefix: `${kind} ${state}`,
+    text: label,
+  };
+}
+
 /**
  * Styled blockquote with a one-click copy button.
  * The copy button extracts plain text from the rendered children
@@ -44,8 +64,8 @@ export function SummaryBlock({ children }: SummaryBlockProps) {
 
 /**
  * Custom markdown component map for react-markdown.
- * List items are rendered as typed variants (commit / MR / issue / default)
- * based on a tag prefix convention: `[commit]`, `[MR <state>]`, `[issue <state>]`.
+ * Activity list items keep a compact, low-emphasis style while copied summaries
+ * inside blockquotes retain normal readable typography.
  */
 export const mdComponents: Components = {
   h2: ({ children }) => (
@@ -65,49 +85,12 @@ export const mdComponents: Components = {
   ol: ({ children }) => <ol className="list-decimal pl-5 my-1">{children}</ol>,
   li: ({ children }) => {
     const text = getTextContent(children);
-
-    if (text.startsWith("[commit]")) {
+    const activityItem = parseActivityListItem(text);
+    if (activityItem) {
       return (
-        <li className="flex items-start gap-1.5 py-px list-none">
-          <span className="text-[0.65rem] font-mono text-muted/55 leading-relaxed tracking-tight">
-            {text.replace(/^\[commit\] /, "")}
-          </span>
-        </li>
-      );
-    }
-
-    if (/^\[MR/.test(text)) {
-      const state = text.match(/^\[MR ([^\]]+)\]/)?.[1] ?? "";
-      const label = text.replace(/^\[MR [^\]]*\] /, "");
-      return (
-        <li className="flex items-start gap-1.5 py-px list-none">
-          <span className="mt-[3px] px-1 py-px text-[0.55rem] font-mono font-semibold bg-accent/8 text-accent/40 rounded-[2px] shrink-0 leading-none uppercase tracking-wide">
-            MR
-          </span>
-          <span className="text-[0.65rem] font-mono text-muted/55 leading-relaxed tracking-tight">
-            {label}
-            {state && (
-              <span className="ml-1 text-[0.6rem] text-muted/20">{state}</span>
-            )}
-          </span>
-        </li>
-      );
-    }
-
-    if (/^\[issue/.test(text)) {
-      const state = text.match(/^\[issue ([^\]]+)\]/)?.[1] ?? "";
-      const label = text.replace(/^\[issue [^\]]*\] /, "");
-      return (
-        <li className="flex items-start gap-1.5 py-px list-none">
-          <span className="mt-[3px] px-1 py-px text-[0.55rem] font-mono font-semibold bg-border/40 text-muted/35 rounded-[2px] shrink-0 leading-none uppercase tracking-wide">
-            ISS
-          </span>
-          <span className="text-[0.65rem] font-mono text-muted/55 leading-relaxed tracking-tight">
-            {label}
-            {state && (
-              <span className="ml-1 text-[0.6rem] text-muted/20">{state}</span>
-            )}
-          </span>
+        <li className="py-px list-none text-[0.65rem] font-mono text-muted/55 leading-relaxed tracking-tight lowercase">
+          <span className="text-muted/35">{activityItem.prefix}: </span>
+          <span>{activityItem.text}</span>
         </li>
       );
     }
