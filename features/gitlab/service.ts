@@ -13,6 +13,7 @@ async function gitlabFetch<T>(
     headers: { "PRIVATE-TOKEN": token },
     query: params,
     errorPrefix: `GitLab API error at ${path}`,
+    timeoutMs: 10_000,
   });
 }
 

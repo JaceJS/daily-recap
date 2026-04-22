@@ -138,6 +138,7 @@ export async function* generateDailyLogStream(
       ],
     }),
     errorPrefix: "OpenRouter error",
+    timeoutMs: 35_000,
   });
   if (!response.body) throw new Error("OpenRouter returned no response body.");
 

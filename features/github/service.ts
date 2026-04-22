@@ -18,6 +18,7 @@ async function githubFetch<T>(
     },
     query: params,
     errorPrefix: `GitHub API error at ${path}`,
+    timeoutMs: 10_000,
   });
 }
 

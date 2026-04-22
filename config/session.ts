@@ -9,7 +9,7 @@ export type SessionData = {
 };
 
 const SESSION_OPTIONS = {
-  cookieName: "session",
+  cookieName: "daily-recap-session",
   password: env.SESSION_SECRET,
   ttl: 60 * 60 * 3, // 3 hours
   cookieOptions: {
