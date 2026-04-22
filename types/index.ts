@@ -54,6 +54,31 @@ export type DailyActivityData = {
   days: DailyActivity[];
 };
 
+export type StandupActivityGroup = {
+  date: string;
+  label: string;
+  commits: Commit[];
+  pullRequests: PullRequest[];
+  issues: Issue[];
+};
+
+export type StandupBlocker = {
+  kind: "PR" | "issue";
+  title: string;
+  state: string;
+  updatedAt: string;
+  webUrl: string;
+};
+
+export type StandupActivityData = {
+  timezone: string;
+  effectiveSince: string;
+  effectiveUntil: string;
+  yesterday: StandupActivityGroup;
+  today: StandupActivityGroup;
+  blockers: StandupBlocker[];
+};
+
 export type Branch = {
   name: string;
   isDefault: boolean;
@@ -74,6 +99,7 @@ export type GenerateParams = {
   branch: string;
   since: string;
   until: string;
+  timezone: string;
   includePRs: boolean;
   includeIssues: boolean;
   outputMode: "log" | "standup";

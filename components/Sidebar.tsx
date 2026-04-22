@@ -62,11 +62,8 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
     }
   }
 
-  const isStandupAvailable = rangePreset === "24h";
-
   function handleRangePreset(preset: RangePreset) {
     setRangePreset(preset);
-    if (preset !== "24h") setOutputMode("log");
   }
 
   function computeDateRange(): { since: string; until: string } | null {
@@ -102,9 +99,33 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
       setValidationError("Please select a branch.");
       return;
     }
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    if (outputMode === "standup") {
+      const until = new Date().toISOString();
+      const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
+      onGenerate({
+        repoSlug: selectedRepo,
+        branch: selectedBranch,
+        since,
+        until,
+        timezone,
+        includePRs,
+        includeIssues,
+        outputMode,
+      });
+      return;
+    }
     const dates = computeDateRange();
     if (!dates) return;
-    onGenerate({ repoSlug: selectedRepo, branch: selectedBranch, ...dates, includePRs, includeIssues, outputMode });
+    onGenerate({
+      repoSlug: selectedRepo,
+      branch: selectedBranch,
+      ...dates,
+      timezone,
+      includePRs,
+      includeIssues,
+      outputMode,
+    });
   }
 
   const disabled = isGenerating;
@@ -128,7 +149,6 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
   return (
     <aside className="w-72 shrink-0 border-r border-border bg-surface flex flex-col">
       <div className="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-5">
-
         {/* Repository */}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="repo">Repository</Label>
@@ -153,13 +173,18 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
           <div className="flex flex-col gap-1.5 animate-fade-in">
             <Label htmlFor="branch">Branch</Label>
             {branchesLoading ? (
-              <p className="text-xs font-mono text-muted">Loading branches...</p>
+              <p className="text-xs font-mono text-muted">
+                Loading branches...
+              </p>
             ) : branchesError ? (
               <p className="text-xs font-sans text-error">{branchesError}</p>
             ) : (
               <SearchableSelect
                 id="branch"
-                options={branches.map((b) => ({ label: b.name, value: b.name }))}
+                options={branches.map((b) => ({
+                  label: b.name,
+                  value: b.name,
+                }))}
                 value={selectedBranch}
                 onChange={setSelectedBranch}
                 placeholder="Select a branch"
@@ -169,56 +194,7 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
           </div>
         )}
 
-        {/* Date range */}
-        <div className="flex flex-col gap-2">
-          <Label>Date range</Label>
-          <div className="flex gap-1.5">
-            {RANGE_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => handleRangePreset(preset.label)}
-                disabled={disabled}
-                className={toggleBtn(rangePreset === preset.label)}
-              >
-                {preset.label}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => handleRangePreset("custom")}
-              disabled={disabled}
-              className={toggleBtn(rangePreset === "custom")}
-            >
-              custom
-            </button>
-          </div>
-
-          {rangePreset === "custom" && (
-            <div className="flex flex-col gap-2 animate-fade-in">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-mono text-muted">From</span>
-                <Input
-                  type="datetime-local"
-                  value={customSince}
-                  onChange={(e) => setCustomSince(e.target.value)}
-                  disabled={disabled}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-mono text-muted">To</span>
-                <Input
-                  type="datetime-local"
-                  value={customUntil}
-                  onChange={(e) => setCustomUntil(e.target.value)}
-                  disabled={disabled}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Output format — placed right after date range because standup availability depends on it */}
+        {/* Output format */}
         <div className="flex flex-col gap-2">
           <Label>Output format</Label>
           <div className="flex gap-1.5">
@@ -232,19 +208,69 @@ export function Sidebar({ projects, provider, onGenerate, isGenerating }: Props)
             </button>
             <button
               type="button"
-              onClick={() => !disabled && isStandupAvailable && setOutputMode("standup")}
-              disabled={disabled || !isStandupAvailable}
-              className={toggleBtn(outputMode === "standup", !isStandupAvailable)}
+              onClick={() => setOutputMode("standup")}
+              disabled={disabled}
+              className={toggleBtn(outputMode === "standup")}
             >
               Standup
             </button>
           </div>
-          {!isStandupAvailable && (
+          {outputMode === "standup" && (
             <p className="text-[11px] font-sans text-muted/60">
-              Standup is only available for the 24h range.
+              Standup uses previous workday plus today so far.
             </p>
           )}
         </div>
+
+        {outputMode === "log" && (
+          <div className="flex flex-col gap-2">
+            <Label>Date range</Label>
+            <div className="flex gap-1.5">
+              {RANGE_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => handleRangePreset(preset.label)}
+                  disabled={disabled}
+                  className={toggleBtn(rangePreset === preset.label)}
+                >
+                  {preset.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => handleRangePreset("custom")}
+                disabled={disabled}
+                className={toggleBtn(rangePreset === "custom")}
+              >
+                custom
+              </button>
+            </div>
+
+            {rangePreset === "custom" && (
+              <div className="flex flex-col gap-2 animate-fade-in">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-mono text-muted">From</span>
+                  <Input
+                    type="datetime-local"
+                    value={customSince}
+                    onChange={(e) => setCustomSince(e.target.value)}
+                    disabled={disabled}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-mono text-muted">To</span>
+                  <Input
+                    type="datetime-local"
+                    value={customUntil}
+                    onChange={(e) => setCustomUntil(e.target.value)}
+                    disabled={disabled}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Data sources */}
         <div className="flex flex-col gap-2">

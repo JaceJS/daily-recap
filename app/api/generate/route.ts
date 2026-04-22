@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/config/session";
 import { checkRateLimit } from "@/utils/rate-limit";
-import { groupActivityByDay } from "@/utils/activity";
+import { buildStandupActivity, groupActivityByDay, resolveStandupWindow } from "@/utils/activity";
 import { fetchActivity as fetchGitLabActivity } from "@/features/gitlab/service";
 import { fetchActivity as fetchGitHubActivity } from "@/features/github/service";
 import { generateDailyLogStream } from "@/features/ai/service";
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     branch?: string;
     since?: string;
     until?: string;
+    timezone?: string;
     includePRs?: boolean;
     includeIssues?: boolean;
     outputMode?: "log" | "standup";
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
     branch,
     since,
     until,
+    timezone = "UTC",
     includePRs = false,
     includeIssues = false,
     outputMode = "log",
@@ -61,31 +63,62 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let rawDailyActivity: string;
+  let rawDailyActivity: string | undefined;
+  let rawStandupActivity: string | undefined;
+  let effectiveSince = since;
+  let effectiveUntil = until;
   try {
     const fetchActivity = provider === "github" ? fetchGitHubActivity : fetchGitLabActivity;
-    const activity = await fetchActivity({ token, repoSlug, branch, since, until, includePRs, includeIssues });
-    const grouped = groupActivityByDay(activity, since, until);
+    if (outputMode === "standup") {
+      const standupWindow = resolveStandupWindow(timezone);
+      effectiveSince = standupWindow.effectiveSince;
+      effectiveUntil = standupWindow.effectiveUntil;
+      const activity = await fetchActivity({
+        token,
+        repoSlug,
+        branch,
+        since: effectiveSince,
+        until: effectiveUntil,
+        includePRs,
+        includeIssues,
+      });
+      rawStandupActivity = JSON.stringify(
+        buildStandupActivity(activity, standupWindow),
+      );
+    } else {
+      const activity = await fetchActivity({ token, repoSlug, branch, since, until, includePRs, includeIssues });
+      const grouped = groupActivityByDay(activity, since, until);
 
-    if (grouped.days.length === 0) {
-      const msg = "Tidak ada aktivitas pada periode yang dipilih.";
-      return new Response(msg, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      if (grouped.days.length === 0) {
+        const msg = "Tidak ada aktivitas pada periode yang dipilih.";
+        return new Response(msg, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      }
+
+      rawDailyActivity = JSON.stringify(grouped);
     }
-
-    rawDailyActivity = JSON.stringify(grouped);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch activity.";
     return NextResponse.json({ message }, { status: 502 });
   }
 
-  const stream = generateDailyLogStream({
-    rawDailyActivity,
-    repoSlug,
-    dateRangeStart: since,
-    dateRangeEnd: until,
-    outputMode,
-    includeDaySummary: outputMode === "log",
-  });
+  const stream =
+    outputMode === "standup"
+      ? generateDailyLogStream({
+          rawStandupActivity: rawStandupActivity ?? "",
+          repoSlug,
+          dateRangeStart: effectiveSince,
+          dateRangeEnd: effectiveUntil,
+          outputMode,
+          includeDaySummary: false,
+        })
+      : generateDailyLogStream({
+          rawDailyActivity: rawDailyActivity ?? "",
+          repoSlug,
+          dateRangeStart: effectiveSince,
+          dateRangeEnd: effectiveUntil,
+          outputMode,
+          includeDaySummary: true,
+        });
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({

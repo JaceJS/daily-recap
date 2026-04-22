@@ -1,8 +1,8 @@
 "use client";
 
 import { Sidebar } from "@/components/Sidebar";
-import { ReportOutput } from "@/features/report/ReportOutput";
-import { useReport } from "@/features/report/useReport";
+import { ReportOutput } from "@/features/report/components/shared/ReportOutput";
+import { useReport } from "@/features/report/hooks/useReport";
 import type { Project, Provider } from "@/types";
 
 interface Props {

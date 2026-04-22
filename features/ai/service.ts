@@ -1,19 +1,35 @@
 import { env } from "@/config/env";
-import type { DailyActivityData } from "@/types";
+import type { DailyActivityData, StandupActivityData } from "@/types";
 import type { GenerateDailyLogInput } from "./types";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const SSE_DATA_PREFIX = "data: ";
 const SSE_DONE_SIGNAL = "[DONE]";
 
-const SYSTEM_PROMPT = {
-  log:
-    "Kamu adalah generator log aktivitas harian untuk engineer Indonesia. Tulis dengan gaya bahasa kerja yang natural: dominan Bahasa Indonesia, tetapi tetap biarkan istilah teknis umum dalam English jika lebih lazim dipakai, seperti pull request, issue, deploy, endpoint, refactor, bugfix, staging, dan production. Jangan memaksakan terjemahan istilah teknis, jangan mengubah nama branch, nama fitur, atau proper noun. Untuk setiap hari yang diberikan, tulis ringkasan singkat berdasarkan commit message, merge request, dan issue. Gunakan markdown dengan heading ## per hari. Jadilah faktual dan ringkas, jangan mengarang pekerjaan yang tidak ada di data. Saat mendaftar item individual, pertahankan tag prefix persis seperti yang diberikan: [commit], [PR <state>], atau [issue <state>].",
-  standup:
-    "Kamu adalah generator laporan standup untuk engineer Indonesia. Tulis dengan gaya bahasa kerja yang natural: dominan Bahasa Indonesia, tetapi tetap biarkan istilah teknis umum dalam English jika lebih lazim dipakai, seperti pull request, issue, deploy, endpoint, refactor, bugfix, staging, dan production. Jangan memaksakan terjemahan istilah teknis, jangan mengubah nama branch, nama fitur, atau proper noun. Berdasarkan aktivitas repository dari 24 jam terakhir, buat laporan standup singkat dengan tiga bagian: **Kemarin**, **Hari ini**, dan **Blocker**. Gunakan markdown. Ringkas, profesional, dan faktual. Tentukan mana yang dikerjakan kemarin vs hari ini dari data yang ada. Saat mendaftar item individual, pertahankan tag prefix persis seperti yang diberikan: [commit], [PR <state>], atau [issue <state>].",
-} as const;
+const SYSTEM_PROMPT =
+  "Kamu membuat laporan kerja engineer Indonesia. Pakai Bahasa Indonesia natural dengan istilah teknis English bila lebih jelas. Jangan terjemahkan proper noun, nama branch, atau nama fitur. Tulis singkat, jelas, natural, dan fokus pada outcome atau dampak yang layak dilaporkan. Gunakan bahasa sederhana; jika perlu istilah teknis, beri konteks singkat. Hindari gaya formal ala AI, jargon berlebihan, dan frasa template. Jangan mengarang di luar data. Abaikan noise seperti merge/WIP, formatting, typo, rename kecil, clean-up minor, refactor tanpa perubahan behavior, dan update dependency rutin.";
+
+const SHARED_SUMMARY_RULES = [
+  "Tulis 1-3 poin; 4 hanya jika memang ada 4 hasil yang benar-benar berbeda dan penting.",
+  "Jangan menambah poin hanya untuk memenuhi kuota.",
+  "Setiap poin harus berisi outcome atau progress yang meaningful, bukan item kecil atau variasi dari hal yang sama.",
+  "Setiap poin harus berupa satu kalimat yang cukup deskriptif agar konteks dan dampaknya jelas.",
+  "Gunakan bahasa sederhana; jika ada istilah teknis, jelaskan singkat tujuannya atau dampaknya.",
+  "Abaikan commit minor seperti formatting, typo, clean-up kecil, rename kecil, merge branch, atau update yang tidak berdampak.",
+] as const;
+
+function formatRules(
+  rules: readonly string[],
+  marker: string,
+  prefix = "",
+): string {
+  return rules.map((rule) => `${prefix}${marker} ${rule}`).join("\n");
+}
 
 function buildLogPrompt(input: GenerateDailyLogInput): string {
+  if (input.outputMode !== "log") {
+    throw new Error("buildLogPrompt only supports log mode.");
+  }
   const data = JSON.parse(input.rawDailyActivity) as DailyActivityData;
 
   const dayBlocks = data.days.map((day) => {
@@ -32,36 +48,62 @@ function buildLogPrompt(input: GenerateDailyLogInput): string {
   });
 
   const summaryInstruction = input.includeDaySummary
-    ? "\n\nUntuk setiap hari, setelah daftar aktivitas, tambahkan ringkasan sebagai blockquote berisi 2-3 poin singkat yang merangkum konteks pekerjaan hari itu. Gunakan gaya bahasa kerja Indonesia campur English yang natural. Contoh format:\n> - Mengerjakan perbaikan flow autentikasi\n> - Update beberapa UI component"
+    ? "\n\nUntuk setiap hari, setelah daftar aktivitas, tambahkan ringkasan sebagai blockquote. Aturan penting:\n" +
+      formatRules(SHARED_SUMMARY_RULES, "-", "> ")
     : "";
 
   return (
-    `Repository: ${input.repoSlug}\n` +
-    `Periode: ${input.dateRangeStart} -> ${input.dateRangeEnd}\n\n` +
+    `Repository: ${input.repoSlug}\nPeriode: ${input.dateRangeStart} -> ${input.dateRangeEnd}\n\n` +
+    "Format daily log:\n" +
+    "- Gunakan heading `##` untuk setiap hari.\n" +
+    "- Tampilkan daftar item aktivitas sebelum ringkasan.\n" +
+    "- Pertahankan prefix item persis seperti input: `[commit]`, `[PR <state>]`, `[issue <state>]`.\n" +
+    "- Ringkasan blockquote hanya melengkapi daftar, bukan menggantikannya.\n\n" +
     `Data aktivitas (urutan lama ke baru):\n\n${dayBlocks.join("\n\n")}` +
     summaryInstruction
   );
 }
 
 function buildStandupPrompt(input: GenerateDailyLogInput): string {
-  const data = JSON.parse(input.rawDailyActivity) as DailyActivityData;
+  if (input.outputMode !== "standup") {
+    throw new Error("buildStandupPrompt only supports standup mode.");
+  }
+  const data = JSON.parse(input.rawStandupActivity) as StandupActivityData;
 
-  const allCommits = data.days.flatMap((d) =>
-    d.commits.map((c) => `- [commit] ${c.title} (${d.label})`),
-  );
-  const allMRs = data.days.flatMap((d) =>
-    d.pullRequests.map((pr) => `- [PR ${pr.state}] ${pr.title} (${d.label})`),
-  );
-  const allIssues = data.days.flatMap((d) =>
-    d.issues.map((i) => `- [issue ${i.state}] ${i.title} (${d.label})`),
-  );
+  const formatActivityGroup = (label: string, items: StandupActivityData["yesterday"]) => {
+    const primaryLines =
+      items.pullRequests.length > 0
+        ? items.pullRequests.map((pr) => `- [PR ${pr.state}] ${pr.title}`)
+        : items.commits.map((commit) => `- [commit] ${commit.title}`);
+    const lines = [
+      ...primaryLines,
+      ...items.issues.map((issue) => `- [issue ${issue.state}] ${issue.title}`),
+    ];
 
-  const activityLines = [...allCommits, ...allMRs, ...allIssues].join("\n");
+    return `${label} (${items.label}):\n${lines.join("\n") || "<kosong>"}`;
+  };
+
+  const blockerLines = data.blockers.map(
+    (blocker) => `- [${blocker.kind} ${blocker.state}] ${blocker.title}`,
+  );
 
   return (
-    `Repository: ${input.repoSlug}\n` +
-    `Periode: ${input.dateRangeStart} -> ${input.dateRangeEnd}\n\n` +
-    `Aktivitas:\n${activityLines || "Tidak ada aktivitas."}`
+    `Repository: ${input.repoSlug}\nTimezone: ${data.timezone}\nPeriode standup: ${input.dateRangeStart} -> ${input.dateRangeEnd}\n\n` +
+    `Data standup terstruktur:\n` +
+    `${formatActivityGroup("Kemarin", data.yesterday)}\n\n` +
+    `${formatActivityGroup("Hari ini", data.today)}\n\n` +
+    `Blocker kandidat:\n${blockerLines.join("\n") || "- Tidak ada blocker kandidat."}` +
+    "\n\nFormat standup:\n" +
+    "- Gunakan `## Standup`, lalu `### Kemarin`, `### Hari ini`, `### Blocker`.\n" +
+    "- Semua isi section berupa bullet `- `.\n" +
+    "- `Kemarin`: 2-3 bullet outcome/progress nyata; jangan hanya 1 bullet.\n" +
+    "- `Hari ini`: hanya aktivitas yang benar-benar terdeteksi hari ini; tidak boleh rekomendasi, rencana, atau inferensi. Jika input `Hari ini` = `<kosong>`, biarkan kosong.\n" +
+    "- `Blocker`: 0-2 bullet blocker yang benar-benar terlihat dari data. Jika tidak ada, biarkan kosong.\n\n" +
+    "Aturan isi bullet:\n" +
+    formatRules(SHARED_SUMMARY_RULES, "-") +
+    "\n- `Kemarin` boleh sedikit lebih deskriptif agar konteks dan dampaknya jelas.\n" +
+    "- Jika ada perubahan yang masih terkait, pecah menjadi 2-3 poin berbeda berdasarkan outcome, area kerja, atau dampak; jangan digabung jadi satu kalimat panjang.\n\n" +
+    "Template:\n## Standup\n### Kemarin\n- ...\n- ...\n### Hari ini\n- ...\n### Blocker\n"
   );
 }
 
@@ -72,7 +114,7 @@ export async function* generateDailyLogStream(
     throw new Error("OPENROUTER_API_KEY is not configured.");
   }
 
-  const systemPrompt = SYSTEM_PROMPT[input.outputMode];
+  const systemPrompt = SYSTEM_PROMPT;
   const userPrompt =
     input.outputMode === "standup"
       ? buildStandupPrompt(input)
@@ -88,6 +130,7 @@ export async function* generateDailyLogStream(
     body: JSON.stringify({
       model: env.OPENROUTER_MODEL,
       stream: true,
+      temperature: 0.2,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

@@ -1,14 +1,17 @@
 "use client";
 
-interface StreamingViewProps {
+import { StandupView } from "@/features/report/components/standup/StandupReport";
+import { isStandupContent } from "@/features/report/components/standup/standupParser";
+
+interface ReportStreamingViewProps {
   content: string;
 }
 
-/**
- * Renders the live streaming output as raw pre-formatted text
- * with a blinking cursor appended at the end.
- */
-export function StreamingView({ content }: StreamingViewProps) {
+export function ReportStreamingView({ content }: ReportStreamingViewProps) {
+  if (isStandupContent(content)) {
+    return <StandupView content={content} isStreaming />;
+  }
+
   return (
     <div className="flex-1 min-h-0 bg-surface border border-border rounded-[2px] p-6 overflow-y-auto">
       <pre className="font-mono text-sm text-text leading-relaxed whitespace-pre-wrap">

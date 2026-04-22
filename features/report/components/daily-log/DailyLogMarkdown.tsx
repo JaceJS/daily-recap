@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react";
 import type { Components } from "react-markdown";
 import { getTextContent, getBlockquoteText } from "@/utils/markdown";
 
-// Delay (ms) before resetting the "copied" state in SummaryBlock
 const COPY_RESET_DELAY_MS = 2000;
 
 interface SummaryBlockProps {
@@ -31,12 +30,7 @@ function parseActivityListItem(text: string): ActivityListItem | null {
   };
 }
 
-/**
- * Styled blockquote with a one-click copy button.
- * The copy button extracts plain text from the rendered children
- * and writes it to the clipboard in a human-readable bullet format.
- */
-export function SummaryBlock({ children }: SummaryBlockProps) {
+function SummaryBlock({ children }: SummaryBlockProps) {
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
@@ -62,11 +56,6 @@ export function SummaryBlock({ children }: SummaryBlockProps) {
   );
 }
 
-/**
- * Custom markdown component map for react-markdown.
- * Activity list items keep a compact, low-emphasis style while copied summaries
- * inside blockquotes retain normal readable typography.
- */
 export const mdComponents: Components = {
   h2: ({ children }) => (
     <h2 className="flex items-center gap-2.5 font-mono text-sm font-semibold text-text mt-8 mb-3 pb-2 border-b border-border first:mt-0">
@@ -84,8 +73,7 @@ export const mdComponents: Components = {
   ),
   ol: ({ children }) => <ol className="list-decimal pl-5 my-1">{children}</ol>,
   li: ({ children }) => {
-    const text = getTextContent(children);
-    const activityItem = parseActivityListItem(text);
+    const activityItem = parseActivityListItem(getTextContent(children));
     if (activityItem) {
       return (
         <li className="py-px list-none text-[0.65rem] font-mono text-muted/55 leading-relaxed tracking-tight lowercase">

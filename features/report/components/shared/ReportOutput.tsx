@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Textarea } from "@/components/Textarea";
-import { StreamingView } from "@/features/report/StreamingView";
-import { mdComponents } from "@/features/report/Markdown";
+import { ReportStreamingView } from "@/features/report/components/shared/ReportStreaming";
+import { mdComponents } from "@/features/report/components/daily-log/DailyLogMarkdown";
+import { StandupView } from "@/features/report/components/standup/StandupReport";
+import { isStandupContent } from "@/features/report/components/standup/standupParser";
 import { exportContentAsPdf } from "@/utils/pdf-export";
 
 interface Props {
@@ -49,6 +51,7 @@ export function ReportOutput({ content, isStreaming, onClear }: Props) {
   }
 
   const displayContent = editedContent || content;
+  const showStandupView = isStandupContent(displayContent);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col p-8">
@@ -106,37 +109,39 @@ export function ReportOutput({ content, isStreaming, onClear }: Props) {
                   Clear
                 </button>
               )}
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isExporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-white bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isExporting}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-white bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-[2px] transition-colors cursor-pointer"
               >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="12" y1="18" x2="12" y2="12" />
-                <line x1="9" y1="15" x2="15" y2="15" />
-              </svg>
-              {isExporting ? "Exporting..." : "PDF"}
-            </button>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                </svg>
+                {isExporting ? "Exporting..." : "PDF"}
+              </button>
             </div>
           </>
         )}
       </div>
 
       {isStreaming ? (
-        <StreamingView content={content} />
+        <ReportStreamingView content={content} />
+      ) : showStandupView && viewMode === "preview" ? (
+        <StandupView content={displayContent} />
       ) : viewMode === "preview" ? (
         <div className="flex-1 min-h-0 bg-surface border border-border rounded-[2px] p-6 overflow-y-auto">
           <ReactMarkdown components={mdComponents}>
